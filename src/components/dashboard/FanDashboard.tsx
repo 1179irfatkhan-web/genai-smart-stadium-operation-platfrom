@@ -1,288 +1,166 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import {
-  MapPin, Clock, Users, Thermometer, Droplets, Bus, Leaf,
-  MessageSquare, ArrowRight, AlertTriangle, Calendar
-} from 'lucide-react';
+import { Map, Users, MessageSquare, Bus, Leaf, AlertTriangle, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { Match, CrowdDensity, Alert, Facility } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { Skeleton } from '../common/LoadingSpinner';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { SkeletonDashboard } from '../common/Skeletons';
+import type { Alert, CrowdDensity, Match } from '../../types';
+
+interface DashboardStats {
+  crowdLevel: string;
+  activeAlerts: number;
+  upcomingMatches: number;
+  facilitiesOpen: number;
+}
 
 export function FanDashboard() {
   const { profile } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
-  const [crowdData, setCrowdData] = useState<CrowdDensity[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [waterStations, setWaterStations] = useState<Facility[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        const [matchRes, crowdRes, alertsRes, waterRes] = await Promise.all([
-          supabase
-            .from('matches')
-            .select('*')
-            .eq('status', 'live')
-            .maybeSingle(),
-          supabase
-            .from('crowd_density')
-            .select('*')
-            .order('recorded_at', { ascending: false })
-            .limit(5),
-          supabase
-            .from('alerts')
-            .select('*')
-            .eq('is_resolved', false)
-            .order('created_at', { ascending: false })
-            .limit(3),
-          supabase
-            .from('facilities')
-            .select('*')
-            .eq('type', 'water_refill')
-            .eq('status', 'operational')
-            .limit(5),
-        ]);
+  const fetchData = useCallback(async () => {
+    const [alertsRes, matchesRes, crowdRes, facilitiesRes] = await Promise.all([
+      supabase.from('alerts').select('*').eq('is_resolved', false).order('created_at', { ascending: false }).limit(5),
+      supabase.from('matches').select('*').order('match_date').limit(3),
+      supabase.from('crowd_density').select('*').order('recorded_at', { ascending: false }).limit(10),
+      supabase.from('facilities').select('*').eq('status', 'operational'),
+    ]);
 
-        if (matchRes.data) setCurrentMatch(matchRes.data);
-        if (crowdRes.data) setCrowdData(crowdRes.data);
-        if (alertsRes.data) setAlerts(alertsRes.data);
-        if (waterRes.data) setWaterStations(waterRes.data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
+    const crowdData = crowdRes.data as CrowdDensity[] | null;
+    const dominantLevel = crowdData && crowdData.length > 0
+      ? crowdData[0].density_level
+      : 'low';
 
-    fetchDashboardData();
+    setStats({
+      crowdLevel: dominantLevel,
+      activeAlerts: alertsRes.data?.length ?? 0,
+      upcomingMatches: matchesRes.data?.length ?? 0,
+      facilitiesOpen: facilitiesRes.data?.length ?? 0,
+    });
+    setAlerts((alertsRes.data as Alert[]) || []);
+    setMatches((matchesRes.data as Match[]) || []);
+    setLoading(false);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-48 w-full rounded-2xl" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const getDensityColor = (level: string) => {
-    switch (level) {
-      case 'low': return 'text-green-600 bg-green-100';
-      case 'moderate': return 'text-blue-600 bg-blue-100';
-      case 'high': return 'text-amber-600 bg-amber-100';
-      case 'critical': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
+  if (loading) return <SkeletonDashboard />;
+  if (!stats) return <LoadingSpinner size="lg" />;
+
+  const quickActions = [
+    { icon: Map, label: 'Find My Seat', color: 'bg-blue-100 text-blue-600' },
+    { icon: Users, label: 'Crowd Status', color: 'bg-green-100 text-green-600' },
+    { icon: MessageSquare, label: 'Ask AI', color: 'bg-purple-100 text-purple-600' },
+    { icon: Bus, label: 'Transport', color: 'bg-orange-100 text-orange-600' },
+    { icon: Leaf, label: 'Sustainability', color: 'bg-emerald-100 text-emerald-600' },
+    { icon: AlertTriangle, label: 'Report Issue', color: 'bg-red-100 text-red-600' },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">
-            Welcome, {profile?.full_name?.split(' ')[0] || 'Fan'}!
-          </h1>
-          <p className="text-secondary mt-1">SoFi Stadium</p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-tertiary">
-          <Thermometer className="w-4 h-4 text-accent-500" />
-          <span className="text-sm font-medium">24C Sunny</span>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-primary">
+          Welcome, {profile?.full_name?.split(' ')[0] || 'Fan'}!
+        </h1>
+        <p className="text-sm text-secondary mt-1">Here's your stadium overview for today.</p>
       </div>
 
-      {currentMatch && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card overflow-hidden"
-        >
-          <div className="gradient-primary p-6 text-white">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="px-2 py-1 rounded bg-white/20 text-xs font-medium flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                LIVE
-              </div>
-              <span className="text-sm opacity-80">{currentMatch.match_type.replace('_', ' ').toUpperCase()}</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-center flex-1">
-                <div className="w-16 h-16 mx-auto mb-2 rounded-lg bg-white/20 flex items-center justify-center text-2xl font-bold">
-                  {currentMatch.home_team.slice(0, 3).toUpperCase()}
-                </div>
-                <p className="font-medium">{currentMatch.home_team}</p>
-              </div>
-
-              <div className="px-6 text-center">
-                <div className="text-3xl font-bold">2 - 1</div>
-                <div className="text-sm opacity-75 mt-1 flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  67'
-                </div>
-              </div>
-
-              <div className="text-center flex-1">
-                <div className="w-16 h-16 mx-auto mb-2 rounded-lg bg-white/20 flex items-center justify-center text-2xl font-bold">
-                  {currentMatch.away_team.slice(0, 3).toUpperCase()}
-                </div>
-                <p className="font-medium">{currentMatch.away_team}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 border-t border-default bg-secondary/50">
-            <div className="flex items-center gap-2 text-sm text-secondary">
-              <Calendar className="w-4 h-4" />
-              {new Date(currentMatch.match_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link to="/dashboard/map" className="stat-card hover:shadow-lg transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <MapPin className="w-5 h-5 text-primary-600" />
-            </div>
-            <div>
-              <p className="text-sm text-secondary">Find Your Way</p>
-              <p className="font-semibold text-primary">Stadium Map</p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 ml-auto text-tertiary group-hover:translate-x-1 transition-transform" />
-        </Link>
-
-        <Link to="/dashboard/ai" className="stat-card hover:shadow-lg transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <MessageSquare className="w-5 h-5 text-accent-600" />
-            </div>
-            <div>
-              <p className="text-sm text-secondary">Get Instant Help</p>
-              <p className="font-semibold text-primary">AI Assistant</p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 ml-auto text-tertiary group-hover:translate-x-1 transition-transform" />
-        </Link>
-
-        <Link to="/dashboard/crowd" className="stat-card hover:shadow-lg transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Users className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-secondary">Check Conditions</p>
-              <p className="font-semibold text-primary">Crowd Status</p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 ml-auto text-tertiary group-hover:translate-x-1 transition-transform" />
-        </Link>
-
-        <Link to="/dashboard/transport" className="stat-card hover:shadow-lg transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Bus className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-secondary">Plan Your Trip</p>
-              <p className="font-semibold text-primary">Transport</p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 ml-auto text-tertiary group-hover:translate-x-1 transition-transform" />
-        </Link>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={TrendingUp} label="Crowd Level" value={stats.crowdLevel} color="bg-blue-100 text-blue-600" />
+        <StatCard icon={AlertTriangle} label="Active Alerts" value={String(stats.activeAlerts)} color="bg-red-100 text-red-600" />
+        <StatCard icon={Map} label="Facilities Open" value={String(stats.facilitiesOpen)} color="bg-green-100 text-green-600" />
+        <StatCard icon={Users} label="Upcoming Matches" value={String(stats.upcomingMatches)} color="bg-orange-100 text-orange-600" />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary">Crowd Updates</h2>
-            <Link to="/dashboard/crowd" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-              View All
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {crowdData.length > 0 ? (
-              crowdData.map((crowd) => (
-                <div key={crowd.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-tertiary flex items-center justify-center">
-                      <Users className="w-4 h-4 text-secondary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-primary text-sm">{crowd.zone_name}</p>
-                      <p className="text-xs text-tertiary">{crowd.zone_type}</p>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDensityColor(crowd.density_level)}`}>
-                    {crowd.density_level.toUpperCase()}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-secondary py-4">No crowd data available</p>
-            )}
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary">Quick Access</h2>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {waterStations.slice(0, 3).map((station) => (
-              <div key={station.id} className="p-3 rounded-lg bg-secondary text-center">
-                <Droplets className="w-6 h-6 mx-auto text-blue-500 mb-2" />
-                <p className="text-xs font-medium text-primary truncate">{station.name}</p>
-                <p className="text-xs text-accent-500">Free Water</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-4 border-t border-default">
-            <Link
-              to="/dashboard/sustainability"
-              className="flex items-center gap-2 text-sm text-accent-600 hover:text-accent-700 font-medium"
+      <div>
+        <h2 className="text-lg font-semibold text-primary mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {quickActions.map((action) => (
+            <motion.button
+              key={action.label}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="card flex flex-col items-center gap-2 p-4 cursor-pointer"
+              aria-label={action.label}
             >
-              <Leaf className="w-4 h-4" />
-              View Sustainability Tips
-              <ArrowRight className="w-4 h-4 ml-auto" />
-            </Link>
-          </div>
+              <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center`}>
+                <action.icon className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <span className="text-xs font-medium text-primary text-center">{action.label}</span>
+            </motion.button>
+          ))}
         </div>
       </div>
 
       {alerts.length > 0 && (
-        <div className="card border-l-4 border-l-amber-500">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-primary mb-2">Active Alerts</h3>
-              <div className="space-y-2">
-                {alerts.map((alert) => (
-                  <div key={alert.id} className="text-sm">
-                    <span className="font-medium text-primary">{alert.title}:</span>{' '}
-                    <span className="text-secondary">{alert.message}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div>
+          <h2 className="text-lg font-semibold text-primary mb-3">Recent Alerts</h2>
+          <div className="space-y-3">
+            {alerts.map((alert, i) => (
+              <motion.div
+                key={alert.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="card flex items-start gap-3"
+              >
+                <AlertTriangle className={`w-5 h-5 mt-0.5 ${
+                  alert.severity === 'critical' || alert.severity === 'emergency'
+                    ? 'text-red-500' : alert.severity === 'warning' ? 'text-amber-500' : 'text-blue-500'
+                }`} aria-hidden="true" />
+                <div>
+                  <h3 className="font-medium text-primary">{alert.title}</h3>
+                  <p className="text-sm text-secondary mt-1">{alert.message}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       )}
+
+      {matches.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-primary mb-3">Upcoming Matches</h2>
+          <div className="space-y-3">
+            {matches.map((match) => (
+              <div key={match.id} className="card flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-primary">{match.home_team} vs {match.away_team}</h3>
+                  <p className="text-sm text-secondary capitalize">{match.match_type.replace('_', ' ')}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-primary">
+                    {new Date(match.match_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs ${
+                    match.status === 'live' ? 'bg-green-100 text-green-700' :
+                    match.status === 'completed' ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {match.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, color }: { icon: typeof Map; label: string; value: string; color: string }) {
+  return (
+    <div className="card flex items-center gap-3">
+      <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center flex-shrink-0`} aria-hidden="true">
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-tertiary">{label}</p>
+        <p className="text-lg font-bold text-primary capitalize truncate">{value}</p>
+      </div>
     </div>
   );
 }

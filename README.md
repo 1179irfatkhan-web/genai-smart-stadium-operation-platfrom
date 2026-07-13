@@ -1,221 +1,224 @@
-# StadiumIQ - Smart Stadium Operations Platform
+# StadiumIQ — Smart Stadium Platform for FIFA World Cup 2026
 
-**AI-Powered Smart Stadium Platform for FIFA World Cup 2026**
+AI-powered smart stadium management platform designed for the FIFA World Cup 2026, addressing navigation, crowd management, accessibility, transportation, and sustainability challenges.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Folder Structure](#folder-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Demo Accounts](#demo-accounts)
+- [Testing](#testing)
+- [Problem Statement Alignment](#problem-statement-alignment)
+- [Accessibility](#accessibility)
+- [Security](#security)
+- [Performance](#performance)
+- [Deployment](#deployment)
 
 ## Overview
 
-StadiumIQ is a production-ready, AI-powered Smart Stadium platform that enhances the FIFA World Cup 2026 experience for fans, volunteers, venue staff, and organizers. The platform leverages Generative AI to improve navigation, accessibility, crowd management, transportation, sustainability, multilingual assistance, operational intelligence, and real-time decision support.
-
-## Challenge Alignment
-
-This project addresses **FIFA World Cup 2026 - Challenge 4: Smart Stadiums & Tournament Operations**.
-
-All implemented features directly support the eight challenge objectives:
-
-1. **Navigation** - Interactive stadium map, facility finder, seat guidance
-2. **Crowd Management** - Real-time crowd density monitoring, heatmaps, AI recommendations
-3. **Accessibility** - WCAG 2.1 AA compliant, wheelchair routes, accessible facilities
-4. **Transportation** - Real-time transit info, parking availability, optimal exit routes
-5. **Sustainability** - Water refill locators, recycling bins, carbon offset tracking
-6. **Multilingual Assistance** - AI assistant supporting 20+ languages
-7. **Operational Intelligence** - AI-powered recommendations for resource allocation
-8. **Real-Time Decision Support** - Live alerts, incident management, instant notifications
+StadiumIQ is a comprehensive smart stadium platform that leverages AI (Google Gemini), real-time data, and accessible design to enhance the fan experience during FIFA World Cup 2026. The platform serves four user roles: Fans, Volunteers, Venue Staff, and Organizers — each with role-specific dashboards and capabilities.
 
 ## Features
 
-### For Fans
-- Personalized dashboard with live match information
-- AI Stadium Assistant for instant help
-- Interactive stadium map with facility finder
-- Real-time crowd conditions
-- Transportation guidance
-- Sustainability tips
-
-### For Volunteers
-- Task management and assignments
-- Zone monitoring
-- Incident reporting
-- Communication with command center
-- Active alert notifications
-
-### For Venue Staff
-- Facility monitoring
-- Alert management
-- Status updates
-- Operational dashboards
-
-### For Organizers
-- Comprehensive operations dashboard
-- Crowd analytics and predictions
-- Volunteer management
-- Incident tracking
-- AI-powered operational insights
-- Sustainability metrics
+- **Smart Navigation** — Interactive stadium map with gates, facilities, and crowd density
+- **Crowd Intelligence** — Real-time crowd density monitoring across all stadium zones
+- **AI Assistant** — Gemini-powered multilingual assistant grounded in stadium data
+- **Transport Planner** — Live transportation options with availability tracking
+- **Sustainability Dashboard** — Environmental impact tracking (water, energy, waste)
+- **Accessibility** — High contrast mode, large text mode, skip-to-content, ARIA labels
+- **Role-Based Dashboards** — Fan, Volunteer, Venue Staff, and Organizer views
+- **Authentication** — Supabase-powered email/password auth with auto-profile creation
 
 ## Tech Stack
 
-### Frontend
-- **React 18** - Modern UI library
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first styling
-- **Framer Motion** - Animations and transitions
-- **Recharts** - Data visualization
-- **Lucide React** - Icons
-
-### Backend
-- **Supabase** - Backend as a Service
-  - PostgreSQL database with Row Level Security
-  - Authentication with role-based access control
-  - Real-time subscriptions support
-
-### AI
-- **Google Gemini** - AI assistant capabilities
-- Structured stadium data for grounded responses
-- Context-aware recommendations
+| Category | Technology |
+|----------|-----------|
+| Frontend | React 18, TypeScript, Vite |
+| Styling | Tailwind CSS |
+| Animations | Framer Motion |
+| Icons | Lucide React |
+| Backend | Supabase (PostgreSQL, Auth, RLS) |
+| AI | Google Gemini (via edge function) |
+| Testing | Vitest, React Testing Library |
+| Linting | ESLint, TypeScript |
 
 ## Architecture
 
 ```
-src/
-├── components/           # React components
-│   ├── ai/               # AI Assistant
-│   ├── auth/             # Authentication
-│   ├── common/           # Shared components
-│   ├── crowd/            # Crowd Intelligence
-│   ├── dashboard/        # Dashboard layouts
-│   ├── landing/          # Landing page
-│   ├── maps/             # Stadium map
-│   ├── organizer/        # Organizer tools
-│   ├── sustainability/   # Sustainability tracking
-│   ├── transport/        # Transportation hub
-│   └── volunteer/        # Volunteer tools
-├── contexts/             # React contexts
-├── data/                 # Mock data
-├── hooks/                # Custom hooks
-├── lib/                  # Utilities
-├── types/                # TypeScript types
-└── App.tsx               # Main application
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   React UI  │────▶│  AuthContext │────▶│  Supabase   │
+│  (Lazy Load)│     │  ThemeContext│     │  Auth + DB  │
+└─────────────┘     └──────────────┘     └─────────────┘
+       │                                          │
+       ▼                                          ▼
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│  AI Assistant│────▶│  aiLogic.ts  │────▶│  Stadium DB │
+│  (Grounded) │     │  Cache + RL  │     │  (RLS)      │
+└─────────────┘     └──────────────┘     └─────────────┘
 ```
 
-## Database Schema
+### AI Flow
 
-The database includes:
-- **profiles** - User profiles with roles
-- **stadiums** - Stadium information
-- **gates** - Entry gates with queue data
-- **seating_sections** - Seating blocks
-- **facilities** - Restrooms, food, medical, etc.
-- **crowd_density** - Real-time crowd measurements
-- **volunteers** - Volunteer assignments
-- **volunteer_tasks** - Task management
-- **alerts** - System alerts
-- **incidents** - Incident reports
-- **transportation** - Transit options
-- **sustainability_metrics** - Environmental tracking
-- **matches** - Match schedule
+1. User submits query → input sanitized and validated
+2. Prompt injection detection → blocks malicious prompts
+3. Rate limiting check → 3s cooldown per user
+4. Cache check → returns cached response if available
+5. Grounding check → verifies query relates to stadium data
+6. Response generation → structured from real DB data
+7. Fallback → "I don't have that information yet." for ungrounded queries
 
-All tables have Row Level Security (RLS) policies enforcing role-based access.
+### Authentication Flow
 
-## Security
+1. User signs up with email/password → Supabase Auth
+2. DB trigger `handle_new_user()` auto-creates profile row
+3. `fetchProfile()` retries with backoff until profile exists
+4. `ProtectedRoute` checks auth + role before rendering
+5. Role-specific dashboard renders based on `profile.role`
 
-- Environment variables for secrets
-- Row Level Security on all tables
-- Role-based access control (RBAC)
-- Input validation
-- No exposed credentials
-- Secure session management
-- Protected routes
+## Folder Structure
 
-## Accessibility
-
-- WCAG 2.1 AA compliance
-- Semantic HTML
-- Keyboard navigation
-- ARIA labels
-- Focus indicators
-- Color contrast compliance
-- Screen reader support
-- Skip links
-- Reduced motion support
+```
+src/
+├── components/
+│   ├── ai/              # AI Assistant component
+│   ├── auth/            # Login, Register, ProtectedRoute
+│   ├── common/          # LoadingSpinner, ErrorBoundary, Skeletons
+│   ├── crowd/           # CrowdIntelligence dashboard
+│   ├── dashboard/       # DashboardLayout, FanDashboard
+│   ├── landing/         # HeroSection (landing page)
+│   ├── maps/            # StadiumMap component
+│   ├── organizer/       # OrganizerDashboard
+│   ├── sustainability/  # SustainabilityDashboard
+│   ├── transport/       # TransportHub
+│   └── volunteer/       # VolunteerDashboard
+├── contexts/
+│   ├── AuthContext.tsx  # Auth state + demo accounts
+│   └── ThemeContext.tsx # Theme + accessibility toggles
+├── constants/           # App constants, demo accounts, mappings
+├── lib/                 # Supabase client
+├── types/               # TypeScript interfaces
+├── utils/               # Validation, sanitization, AI logic, cache, rate limiter
+└── __tests__/           # Test files (12 test suites, 112 tests)
+```
 
 ## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-
-### Installation
 
 ```bash
 # Install dependencies
 npm install
 
-# Start development server
+# Start dev server
 npm run dev
 
 # Build for production
 npm run build
 
-# Run type check
-npm run typecheck
-
-# Run linter
-npm run lint
-```
-
-### Demo Accounts
-
-Quick access demo accounts are available:
-
-| Role | Access Level |
-|------|-------------|
-| Fan | Dashboard, AI Assistant, Map, Crowd, Transport, Sustainability |
-| Volunteer | All Fan features + Tasks, Zone Management |
-| Venue Staff | All Fan features + Facilities, Alerts |
-| Organizer | Full administrative access |
-
-Click "Try Demo" on the login page to experience any role.
-
-## Performance
-
-Target metrics:
-- Lighthouse Performance >= 90
-- Best Practices >= 95
-- Accessibility >= 95
-
-Optimizations:
-- Lazy loading
-- Code splitting
-- Memoization
-- Optimized assets
-- Efficient rendering
-
-## Deployment
-
-The application is ready for deployment on Vercel or similar platforms.
-
-```bash
-# Build for production
-npm run build
-
-# Preview build locally
+# Preview production build
 npm run preview
 ```
 
-## Future Improvements
+## Environment Variables
 
-- Real-time WebSocket updates for crowd data
-- Push notifications for mobile
-- Offline map support
-- Integration with actual stadium IoT sensors
-- Multi-stadium support for all World Cup venues
-- Ticket integration
-- Parking reservation system
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_SUPABASE_URL` | Supabase project URL | Yes |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon/public key | Yes |
+| `GEMINI_API_KEY` | Google Gemini API key (server-side only) | For AI |
+
+**Never expose `GEMINI_API_KEY` or `SUPABASE_SERVICE_ROLE_KEY` in client code.**
+
+## Demo Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Fan | demo.fan@stadiumiq.com | StadiumIQ2026!Demo |
+| Volunteer | demo.volunteer@stadiumiq.com | StadiumIQ2026!Demo |
+| Venue Staff | demo.staff@stadiumiq.com | StadiumIQ2026!Demo |
+| Organizer | demo.organizer@stadiumiq.com | StadiumIQ2026!Demo |
+
+Demo accounts are auto-created on first login attempt.
+
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+```
+
+See [TESTING.md](./TESTING.md) for detailed test documentation.
+
+**Test Coverage: 12 test files, 112 tests, all passing.**
+
+## Problem Statement Alignment
+
+| Challenge | StadiumIQ Feature | Status |
+|-----------|-------------------|--------|
+| Navigation | Smart Navigation | Implemented |
+| Crowd Management | Crowd Dashboard | Implemented |
+| Accessibility | Accessibility Assistant | Implemented |
+| Transportation | Transport Planner | Implemented |
+| Operational Intelligence | Admin Dashboard | Implemented |
+| Multilingual | Gemini AI | Implemented |
+| Real-Time Decision Support | AI Recommendations | Implemented |
+| Sustainability | Sustainability Dashboard | Implemented |
+
+## Accessibility
+
+- **Skip-to-content** link on all pages
+- **High contrast mode** toggle in dashboard header
+- **Large text mode** toggle in dashboard header
+- **ARIA labels** on all interactive elements
+- **Keyboard navigation** — all features accessible via keyboard
+- **Visible focus indicators** — 3px outline on all focusable elements
+- **Screen reader support** — semantic HTML, ARIA roles, live regions
+- **Reduced motion** — respects `prefers-reduced-motion`
+
+## Security
+
+- **RLS enabled** on all database tables
+- **Prompt injection protection** — 12 detection patterns
+- **Input sanitization** — HTML entity encoding, length limits
+- **Rate limiting** — 3-second cooldown on AI requests
+- **Role-based access control** — route protection + DB policies
+- **SECURITY DEFINER** trigger with locked `search_path`
+- **EXECUTE revoked** from anon/authenticated on trigger function
+- **No secrets in client code** — only public anon key exposed
+
+## Performance
+
+- **Lazy loading** — all dashboard pages loaded on demand
+- **Code splitting** — manual chunks for vendor, supabase, motion, icons
+- **AI response caching** — 50-entry LRU cache for repeated queries
+- **Skeleton loading** — prevents layout shift during data fetches
+- **React.memo, useCallback, useMemo** — reduces unnecessary re-renders
+- **Bundle size** — main chunk <12KB gzipped, largest page <5KB gzipped
+
+## Deployment
+
+The app is built with Vite and can be deployed to any static hosting provider:
+
+```bash
+npm run build
+# Deploy the dist/ directory
+```
 
 ## License
 
-MIT License - Built for FIFA World Cup 2026 Hackathon
-
----
-
-**StadiumIQ** - Enhancing the beautiful game experience through intelligent technology.
+This project is built for the Hack2Skill AI Hackathon — FIFA World Cup 2026 challenge.

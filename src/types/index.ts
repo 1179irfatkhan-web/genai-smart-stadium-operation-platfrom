@@ -68,18 +68,9 @@ export interface Facility {
 }
 
 export type FacilityType =
-  | 'restroom'
-  | 'food_stall'
-  | 'beverage'
-  | 'medical_center'
-  | 'prayer_room'
-  | 'water_refill'
-  | 'recycling_bin'
-  | 'first_aid'
-  | 'information'
-  | 'merchandise'
-  | 'accessible_seating'
-  | 'other';
+  | 'restroom' | 'food_stall' | 'beverage' | 'medical_center'
+  | 'prayer_room' | 'water_refill' | 'recycling_bin' | 'first_aid'
+  | 'information' | 'merchandise' | 'accessible_seating' | 'other';
 
 export interface CrowdDensity {
   id: string;
@@ -134,15 +125,8 @@ export interface Alert {
 }
 
 export type AlertType =
-  | 'crowd'
-  | 'weather'
-  | 'medical'
-  | 'security'
-  | 'facility'
-  | 'transport'
-  | 'sustainability'
-  | 'general'
-  | 'emergency';
+  | 'crowd' | 'weather' | 'medical' | 'security' | 'facility'
+  | 'transport' | 'sustainability' | 'general' | 'emergency';
 
 export interface Incident {
   id: string;
@@ -161,13 +145,8 @@ export interface Incident {
 }
 
 export type IncidentType =
-  | 'medical'
-  | 'security'
-  | 'facility'
-  | 'crowd'
-  | 'accessibility'
-  | 'lost_property'
-  | 'other';
+  | 'medical' | 'security' | 'facility' | 'crowd'
+  | 'accessibility' | 'lost_property' | 'other';
 
 export interface Transportation {
   id: string;
@@ -197,13 +176,8 @@ export interface SustainabilityMetric {
 }
 
 export type SustainabilityMetricType =
-  | 'water_usage'
-  | 'energy_usage'
-  | 'waste_recycled'
-  | 'waste_total'
-  | 'carbon_footprint'
-  | 'water_refills'
-  | 'reusable_cups';
+  | 'water_usage' | 'energy_usage' | 'waste_recycled' | 'waste_total'
+  | 'carbon_footprint' | 'water_refills' | 'reusable_cups';
 
 export interface Match {
   id: string;
@@ -217,18 +191,16 @@ export interface Match {
 }
 
 export type MatchType =
-  | 'group_stage'
-  | 'round_of_32'
-  | 'round_of_16'
-  | 'quarter_final'
-  | 'semi_final'
-  | 'third_place'
-  | 'final';
+  | 'group_stage' | 'round_of_32' | 'round_of_16' | 'quarter_final'
+  | 'semi_final' | 'third_place' | 'final';
 
 export interface AIMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  language?: string;
+  confidence?: number;
+  sources?: string[];
 }
 
 export interface NavigationRoute {

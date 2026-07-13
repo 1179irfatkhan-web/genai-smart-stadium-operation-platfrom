@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { DEMO_ACCOUNTS } from '../constants';
 import type { Profile, UserRole } from '../types';
 
 interface AuthContextType {
@@ -17,15 +18,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEMO_PASSWORD = 'StadiumIQ2026!Demo';
-
-const DEMO_ACCOUNTS: Record<UserRole, { email: string; password: string; fullName: string }> = {
-  fan: { email: 'demo.fan@stadiumiq.com', password: DEMO_PASSWORD, fullName: 'Demo Fan' },
-  volunteer: { email: 'demo.volunteer@stadiumiq.com', password: DEMO_PASSWORD, fullName: 'Demo Volunteer' },
-  venue_staff: { email: 'demo.staff@stadiumiq.com', password: DEMO_PASSWORD, fullName: 'Demo Staff' },
-  organizer: { email: 'demo.organizer@stadiumiq.com', password: DEMO_PASSWORD, fullName: 'Demo Organizer' },
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -41,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (!error && data) {
-        setProfile(data);
+        setProfile(data as Profile);
         setLoading(false);
         return;
       }
@@ -80,56 +72,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
-  async function signIn(email: string, password: string) {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
-  }
+  }, []);
 
-  async function signUp(email: string, password: string, fullName: string, role: UserRole) {
+  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-          role,
-        },
-      },
+      options: { data: { full_name: fullName, role } },
     });
-    // Profile row is created automatically by the handle_new_user DB trigger.
     return { error };
-  }
+  }, []);
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
     setSession(null);
-  }
+  }, []);
 
-  async function signInAsDemo(role: UserRole): Promise<{ error: string | null }> {
+  const signInAsDemo = useCallback(async (role: UserRole): Promise<{ error: string | null }> => {
     const demo = DEMO_ACCOUNTS[role];
 
     const { error: signInError } = await signIn(demo.email, demo.password);
     if (!signInError) return { error: null };
 
-    // Account doesn't exist yet — create it, then sign in.
     if (signInError.message === 'Invalid login credentials') {
       const { error: signUpError } = await signUp(demo.email, demo.password, demo.fullName, role);
-      if (signUpError) {
-        return { error: signUpError.message };
-      }
+      if (signUpError) return { error: signUpError.message };
+
       const { error: secondSignInError } = await signIn(demo.email, demo.password);
-      if (secondSignInError) {
-        return { error: secondSignInError.message };
-      }
+      if (secondSignInError) return { error: secondSignInError.message };
       return { error: null };
     }
 
     return { error: signInError.message };
-  }
+  }, [signIn, signUp]);
 
-  async function updateProfile(updates: Partial<Profile>) {
+  const updateProfile = useCallback(async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('Not authenticated') };
 
     const { error } = await supabase
@@ -142,28 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return { error };
-  }
+  }, [user]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        session,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-        signInAsDemo,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={{ user, profile, session, loading, signIn, signUp, signOut, signInAsDemo, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
