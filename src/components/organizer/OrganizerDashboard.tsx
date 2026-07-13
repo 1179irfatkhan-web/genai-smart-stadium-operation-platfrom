@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Users, AlertTriangle, Calendar, Activity } from 'lucide-react';
+import { Users, TriangleAlert as AlertTriangle, Calendar, Activity } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SkeletonDashboard } from '../common/Skeletons';
 import type { Alert, Incident, Volunteer, Match } from '../../types';

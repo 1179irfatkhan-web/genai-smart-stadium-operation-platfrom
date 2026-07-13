@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Activity, CircleCheck as CheckCircle, Clock, CircleAlert as AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { SkeletonList } from '../common/Skeletons';

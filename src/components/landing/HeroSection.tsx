@@ -1,9 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import {
-  Shield, Map, Users, MessageSquare, Bus, Leaf, Globe,
-  Accessibility, AlertTriangle, ArrowRight, CheckCircle,
-} from 'lucide-react';
+import { Shield, Map, Users, MessageSquare, Bus, Leaf, Globe, Accessibility, TriangleAlert as AlertTriangle, ArrowRight, CircleCheck as CheckCircle } from 'lucide-react';
 import { APP_NAME, APP_TAGLINE, PROBLEM_STATEMENT_MAPPING } from '../../constants';
 
 const FEATURES = [

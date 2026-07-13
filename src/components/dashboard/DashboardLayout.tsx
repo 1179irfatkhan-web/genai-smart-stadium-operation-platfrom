@@ -1,11 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  LayoutDashboard, Map, Users, MessageSquare, Bus, Leaf,
-  Bell, Settings, LogOut, Menu, X, Sun, Moon, ChevronDown,
-  User, AlertTriangle, Calendar, Activity, Shield, Contrast, Type,
-} from 'lucide-react';
+import { LayoutDashboard, Map, Users, MessageSquare, Bus, Leaf, Bell, Settings, LogOut, Menu, X, Sun, Moon, ChevronDown, User, TriangleAlert as AlertTriangle, Calendar, Activity, Shield, Contrast, Type } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 

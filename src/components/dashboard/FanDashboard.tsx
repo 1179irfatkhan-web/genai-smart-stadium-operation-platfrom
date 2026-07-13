@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Map, Users, MessageSquare, Bus, Leaf, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Map, Users, MessageSquare, Bus, Leaf, TriangleAlert as AlertTriangle, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../common/LoadingSpinner';
