@@ -13,7 +13,7 @@ describe('LandingPage', () => {
 
     const appNames = screen.getAllByText('StadiumIQ');
     expect(appNames.length).toBeGreaterThan(0);
-    const taglines = screen.getAllByText(/Smart Stadium Platform/);
+    const taglines = screen.getAllByText(/GenAI Smart Stadium Platform/);
     expect(taglines.length).toBeGreaterThan(0);
   });
 
@@ -57,6 +57,17 @@ describe('LandingPage', () => {
     expect(screen.getByText('Crowd Management')).toBeInTheDocument();
     const implemented = screen.getAllByText('Implemented');
     expect(implemented.length).toBeGreaterThan(0);
+  });
+
+  it('renders Gemini AI section', () => {
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Powered by Google Gemini')).toBeInTheDocument();
+    expect(screen.getByText(/Gemini 1.5 Flash/)).toBeInTheDocument();
   });
 
   it('has a skip-to-content link', () => {

@@ -1,58 +1,67 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Send, MessageSquare, Globe, ShieldCheck, Zap } from 'lucide-react';
+import { Send, MessageSquare, Globe, ShieldCheck, Zap, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../common/LoadingSpinner';
-import { processAIRequest, type AIResponse } from '../../utils/aiLogic';
+import { processAIRequest } from '../../utils/aiLogic';
 import { getRemainingCooldown } from '../../utils/rateLimiter';
 import { SUPPORTED_LANGUAGES, AI_RATE_LIMIT_MS } from '../../constants';
-import type { AIMessage, Gate, Facility, CrowdDensity, Transportation, Match, Alert } from '../../types';
+import type { AIMessage, Gate, Facility, CrowdDensity, Transportation, Match, Alert, SeatingSection, Volunteer, SustainabilityMetric, LanguageCode } from '../../types';
 
 const SAMPLE_QUESTIONS = [
   'Which gate has the shortest queue?',
-  'Where is the nearest restroom?',
-  'How is the crowd at Gate A?',
+  'Where is the nearest accessible restroom?',
+  'How is the crowd at Concourse B?',
   'What transport options are available?',
   'Are there any active alerts?',
 ];
 
 export function AIAssistant() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState<LanguageCode>('en');
   const [cooldown, setCooldown] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const stadiumData = useMemo(() => ({
     stadiumName: 'MetLife Stadium',
     gates: [] as Gate[],
+    seatingSections: [] as SeatingSection[],
     facilities: [] as Facility[],
     crowdDensity: [] as CrowdDensity[],
     transportation: [] as Transportation[],
     matches: [] as Match[],
     alerts: [] as Alert[],
+    volunteers: [] as Volunteer[],
+    sustainabilityMetrics: [] as SustainabilityMetric[],
   }), []);
 
   useEffect(() => {
     async function fetchData() {
-      const [gates, facilities, crowd, transport, matches, alerts] = await Promise.all([
+      const [gates, seats, facilities, crowd, transport, matches, alerts, volunteers, sustainability] = await Promise.all([
         supabase.from('gates').select('*'),
+        supabase.from('seating_sections').select('*'),
         supabase.from('facilities').select('*'),
         supabase.from('crowd_density').select('*').order('recorded_at', { ascending: false }).limit(20),
         supabase.from('transportation').select('*'),
         supabase.from('matches').select('*').order('match_date').limit(5),
         supabase.from('alerts').select('*').eq('is_resolved', false).order('created_at', { ascending: false }).limit(5),
+        supabase.from('volunteers').select('*'),
+        supabase.from('sustainability_metrics').select('*').order('recorded_at', { ascending: false }).limit(10),
       ]);
 
       stadiumData.gates = (gates.data as Gate[]) || [];
+      stadiumData.seatingSections = (seats.data as SeatingSection[]) || [];
       stadiumData.facilities = (facilities.data as Facility[]) || [];
       stadiumData.crowdDensity = (crowd.data as CrowdDensity[]) || [];
       stadiumData.transportation = (transport.data as Transportation[]) || [];
       stadiumData.matches = (matches.data as Match[]) || [];
       stadiumData.alerts = (alerts.data as Alert[]) || [];
+      stadiumData.volunteers = (volunteers.data as Volunteer[]) || [];
+      stadiumData.sustainabilityMetrics = (sustainability.data as SustainabilityMetric[]) || [];
     }
     fetchData();
   }, [stadiumData]);
@@ -83,20 +92,24 @@ export function AIAssistant() {
     setInput('');
     setLoading(true);
 
-    const response: AIResponse = processAIRequest({
+    const response = await processAIRequest({
       query: text,
       language,
       stadiumData,
       userId: user?.id ?? 'anonymous',
+      userRole: profile?.role ?? 'fan',
     });
 
     const assistantMessage: AIMessage = {
       role: 'assistant',
-      content: response.content,
+      content: response.answer,
       timestamp: new Date(),
       language: response.language,
       confidence: response.confidence,
       sources: response.sources,
+      reasoningSummary: response.reasoningSummary,
+      recommendedActions: response.recommendedActions,
+      isFallback: response.isFallback,
     };
 
     setMessages((prev) => [...prev, assistantMessage]);
@@ -104,7 +117,7 @@ export function AIAssistant() {
 
     const remaining = getRemainingCooldown(`ai:${user?.id ?? 'anonymous'}`);
     if (remaining > 0) setCooldown(remaining);
-  }, [input, loading, language, stadiumData, user]);
+  }, [input, loading, language, stadiumData, user, profile]);
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto">
@@ -115,7 +128,7 @@ export function AIAssistant() {
             AI Assistant
           </h1>
           <p className="text-sm text-secondary mt-1">
-            Grounded in real-time stadium data. Ask me anything about the stadium.
+            Powered by Google Gemini. Grounded in real-time stadium data.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -124,7 +137,7 @@ export function AIAssistant() {
           <select
             id="language-select"
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => setLanguage(e.target.value as LanguageCode)}
             className="input-field w-40"
             aria-label="Select response language"
           >
@@ -136,6 +149,10 @@ export function AIAssistant() {
       </div>
 
       <div className="flex items-center gap-4 text-xs text-tertiary flex-wrap">
+        <span className="flex items-center gap-1">
+          <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+          Google Gemini 1.5 Flash
+        </span>
         <span className="flex items-center gap-1">
           <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
           Injection-protected
@@ -190,12 +207,28 @@ export function AIAssistant() {
             >
               <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
               {msg.role === 'assistant' && msg.confidence !== undefined && msg.confidence > 0 && (
-                <div className="flex items-center gap-2 mt-2 text-xs opacity-70">
+                <div className="flex items-center gap-2 mt-2 text-xs opacity-70 flex-wrap">
                   <span>Confidence: {Math.round(msg.confidence * 100)}%</span>
                   {msg.sources && msg.sources.length > 0 && (
                     <span>Sources: {msg.sources.join(', ')}</span>
                   )}
+                  {msg.reasoningSummary && (
+                    <span className="italic">{msg.reasoningSummary}</span>
+                  )}
                 </div>
+              )}
+              {msg.role === 'assistant' && msg.recommendedActions && msg.recommendedActions.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs font-medium opacity-70">Recommended actions:</p>
+                  <ul className="text-xs list-disc list-inside opacity-70">
+                    {msg.recommendedActions.map((action, idx) => (
+                      <li key={idx}>{action}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {msg.role === 'assistant' && msg.isFallback && (
+                <p className="text-xs mt-1 opacity-60 italic">Fallback response — data may be limited.</p>
               )}
             </div>
           </motion.div>
@@ -204,7 +237,7 @@ export function AIAssistant() {
         {loading && (
           <div className="flex justify-start">
             <div className="bg-tertiary rounded-xl px-4 py-3">
-              <LoadingSpinner size="sm" />
+              <LoadingSpinner size="sm" text="Gemini is thinking..." />
             </div>
           </div>
         )}

@@ -6,7 +6,6 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock matchMedia for components that use media queries
 if (!window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -23,7 +22,6 @@ if (!window.matchMedia) {
   });
 }
 
-// Mock IntersectionObserver for framer-motion whileInView
 class MockIntersectionObserver {
   observe = vi.fn();
   unobserve = vi.fn();

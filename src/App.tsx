@@ -20,6 +20,7 @@ const TransportHub = lazy(() => import('./components/transport/TransportHub').th
 const SustainabilityDashboard = lazy(() => import('./components/sustainability/SustainabilityDashboard').then((m) => ({ default: m.SustainabilityDashboard })));
 const VolunteerDashboard = lazy(() => import('./components/volunteer/VolunteerDashboard').then((m) => ({ default: m.VolunteerDashboard })));
 const OrganizerDashboard = lazy(() => import('./components/organizer/OrganizerDashboard').then((m) => ({ default: m.OrganizerDashboard })));
+const ChallengeAlignmentPage = lazy(() => import('./components/alignment/ChallengeAlignmentPage').then((m) => ({ default: m.ChallengeAlignmentPage })));
 
 function DashboardRouter() {
   const { profile } = useAuth();
@@ -69,6 +70,7 @@ function App() {
                   <Route path="crowd" element={<CrowdIntelligence />} />
                   <Route path="transport" element={<TransportHub />} />
                   <Route path="sustainability" element={<SustainabilityDashboard />} />
+                  <Route path="alignment" element={<ChallengeAlignmentPage />} />
                   <Route
                     path="tasks"
                     element={

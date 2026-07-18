@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Shield, Map, Users, MessageSquare, Bus, Leaf, Globe, Accessibility, TriangleAlert as AlertTriangle, ArrowRight, CircleCheck as CheckCircle } from 'lucide-react';
+import {
+  Shield, Map, Users, MessageSquare, Bus, Leaf, Globe,
+  Accessibility, AlertTriangle, ArrowRight, CheckCircle, Sparkles,
+} from 'lucide-react';
 import { APP_NAME, APP_TAGLINE, PROBLEM_STATEMENT_MAPPING } from '../../constants';
 
 const FEATURES = [
@@ -78,6 +81,17 @@ export function LandingPage() {
           </div>
         </section>
 
+        <section className="max-w-6xl mx-auto px-4 py-12" aria-labelledby="genai-title">
+          <div className="card text-center space-y-4">
+            <Sparkles className="w-10 h-10 text-blue-500 mx-auto" aria-hidden="true" />
+            <h2 id="genai-title" className="text-2xl font-bold text-primary">Powered by Google Gemini</h2>
+            <p className="text-sm text-secondary max-w-2xl mx-auto">
+              StadiumIQ uses Google Gemini 1.5 Flash via a secure Supabase Edge Function.
+              The AI is grounded in structured stadium data and provides role-aware, multilingual recommendations.
+            </p>
+          </div>
+        </section>
+
         <section className="max-w-6xl mx-auto px-4 py-12" aria-labelledby="alignment-title">
           <h2 id="alignment-title" className="text-2xl font-bold text-primary text-center mb-8">
             Problem Statement Alignment
@@ -125,7 +139,7 @@ export function LandingPage() {
       <footer className="border-t border-default bg-primary" role="contentinfo">
         <div className="max-w-6xl mx-auto px-4 py-8 text-center">
           <p className="text-sm text-tertiary">
-            {APP_NAME} — Smart Stadium Platform for FIFA World Cup 2026
+            {APP_NAME} — GenAI Smart Stadium Platform for FIFA World Cup 2026
           </p>
         </div>
       </footer>

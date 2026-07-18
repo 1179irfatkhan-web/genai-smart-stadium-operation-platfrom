@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, CircleCheck as CheckCircle, Clock, CircleAlert as AlertCircle } from 'lucide-react';
+import { Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { SkeletonList } from '../common/Skeletons';
@@ -13,7 +13,7 @@ export function VolunteerDashboard() {
 
   const fetchTasks = useCallback(async () => {
     if (!user) return;
-    const { data: volData } = await supabase.from('volunteers').select('id').eq('user_id', user.id).single();
+    const { data: volData } = await supabase.from('volunteers').select('id').eq('user_id', user.id).maybeSingle();
     if (!volData) { setLoading(false); return; }
 
     const { data } = await supabase

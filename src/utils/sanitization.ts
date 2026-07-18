@@ -1,3 +1,5 @@
+import { AI_MAX_QUESTION_LENGTH } from '../constants';
+
 const HTML_ENTITIES: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
@@ -21,10 +23,8 @@ const INJECTION_PATTERNS = [
   /\b(?:DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|TRUNCATE)\s+/i,
 ];
 
-const MAX_INPUT_LENGTH = 1000;
-
 export function sanitizeInput(input: string): string {
-  const trimmed = input.trim().slice(0, MAX_INPUT_LENGTH);
+  const trimmed = input.trim().slice(0, AI_MAX_QUESTION_LENGTH);
   return trimmed.replace(/[&<>"'/]/g, (char) => HTML_ENTITIES[char] ?? char);
 }
 
@@ -40,11 +40,11 @@ export function sanitizeAndValidateInput(input: string): {
   if (!input || input.trim().length === 0) {
     return { sanitized: '', isInjection: false, error: 'Please enter a message.' };
   }
-  if (input.length > MAX_INPUT_LENGTH) {
+  if (input.length > AI_MAX_QUESTION_LENGTH) {
     return {
       sanitized: '',
       isInjection: false,
-      error: `Message too long. Maximum ${MAX_INPUT_LENGTH} characters.`,
+      error: `Message too long. Maximum ${AI_MAX_QUESTION_LENGTH} characters.`,
     };
   }
   const sanitized = sanitizeInput(input);

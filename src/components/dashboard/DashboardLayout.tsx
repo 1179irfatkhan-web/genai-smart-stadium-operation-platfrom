@@ -1,7 +1,11 @@
 import { useState, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Map, Users, MessageSquare, Bus, Leaf, Bell, Settings, LogOut, Menu, X, Sun, Moon, ChevronDown, User, TriangleAlert as AlertTriangle, Calendar, Activity, Shield, Contrast, Type } from 'lucide-react';
+import {
+  LayoutDashboard, Map, Users, MessageSquare, Bus, Leaf,
+  Bell, Settings, LogOut, Menu, X, Sun, Moon, ChevronDown,
+  User, AlertTriangle, Calendar, Activity, Shield, Contrast, Type, Target,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -13,6 +17,7 @@ const navItems = [
   { to: '/dashboard/transport', icon: Bus, label: 'Transport' },
   { to: '/dashboard/sustainability', icon: Leaf, label: 'Sustainability' },
   { to: '/dashboard/alerts', icon: Bell, label: 'Alerts' },
+  { to: '/dashboard/alignment', icon: Target, label: 'Challenge Alignment' },
 ];
 
 const roleSpecificNav: Record<string, { to: string; icon: typeof LayoutDashboard; label: string }[]> = {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Bus, Car, Brain as Train, Accessibility, Clock } from 'lucide-react';
+import { Bus, Car, Train, Accessibility, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SkeletonList } from '../common/Skeletons';
 import type { Transportation } from '../../types';

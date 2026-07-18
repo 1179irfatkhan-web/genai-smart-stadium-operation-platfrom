@@ -39,11 +39,6 @@ function renderWithRouter(initialPath: string) {
               <TestPage />
             </ProtectedRoute>
           } />
-          <Route path="/dashboard-admin" element={
-            <ProtectedRoute allowedRoles={['organizer']}>
-              <TestPage />
-            </ProtectedRoute>
-          } />
         </Routes>
       </MemoryRouter>
     </AuthProvider>

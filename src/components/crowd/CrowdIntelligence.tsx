@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Activity, TriangleAlert as AlertTriangle } from 'lucide-react';
+import { Users, Activity, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SkeletonList } from '../common/Skeletons';
 import { DENSITY_COLORS } from '../../constants';

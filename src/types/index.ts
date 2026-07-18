@@ -1,12 +1,41 @@
 export type UserRole = 'fan' | 'volunteer' | 'venue_staff' | 'organizer';
 
+export type LanguageCode = 'en' | 'es' | 'fr' | 'de' | 'pt' | 'ar' | 'zh';
+
+export type CrowdDensityLevel = 'low' | 'moderate' | 'high' | 'critical';
+
+export type AlertSeverity = 'info' | 'warning' | 'critical' | 'emergency';
+
+export type AlertType =
+  | 'crowd' | 'weather' | 'medical' | 'security' | 'facility'
+  | 'transport' | 'sustainability' | 'general' | 'emergency';
+
+export type IncidentType =
+  | 'medical' | 'security' | 'facility' | 'crowd'
+  | 'accessibility' | 'lost_property' | 'other';
+
+export type FacilityType =
+  | 'restroom' | 'food_stall' | 'beverage' | 'medical_center'
+  | 'prayer_room' | 'water_refill' | 'recycling_bin' | 'first_aid'
+  | 'information' | 'merchandise' | 'accessible_seating' | 'other';
+
+export type TransportType = 'metro' | 'bus' | 'taxi' | 'parking' | 'shuttle' | 'rideshare';
+
+export type SustainabilityMetricType =
+  | 'water_usage' | 'energy_usage' | 'waste_recycled' | 'waste_total'
+  | 'carbon_footprint' | 'water_refills' | 'reusable_cups';
+
+export type MatchType =
+  | 'group_stage' | 'round_of_32' | 'round_of_16' | 'quarter_final'
+  | 'semi_final' | 'third_place' | 'final';
+
 export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
   role: UserRole;
   avatar_url: string | null;
-  language_preference: string;
+  language_preference: LanguageCode;
   accessibility_needs: string[];
   created_at: string;
   updated_at: string;
@@ -67,17 +96,12 @@ export interface Facility {
   coordinates: { lat: number; lng: number } | null;
 }
 
-export type FacilityType =
-  | 'restroom' | 'food_stall' | 'beverage' | 'medical_center'
-  | 'prayer_room' | 'water_refill' | 'recycling_bin' | 'first_aid'
-  | 'information' | 'merchandise' | 'accessible_seating' | 'other';
-
 export interface CrowdDensity {
   id: string;
   stadium_id: string;
   zone_name: string;
   zone_type: 'gate' | 'section' | 'concourse' | 'facility' | 'parking';
-  density_level: 'low' | 'moderate' | 'high' | 'critical';
+  density_level: CrowdDensityLevel;
   people_count: number;
   max_capacity: number | null;
   temperature: number | null;
@@ -114,7 +138,7 @@ export interface Alert {
   id: string;
   stadium_id: string;
   type: AlertType;
-  severity: 'info' | 'warning' | 'critical' | 'emergency';
+  severity: AlertSeverity;
   title: string;
   message: string;
   location: string | null;
@@ -123,10 +147,6 @@ export interface Alert {
   resolved_at: string | null;
   created_at: string;
 }
-
-export type AlertType =
-  | 'crowd' | 'weather' | 'medical' | 'security' | 'facility'
-  | 'transport' | 'sustainability' | 'general' | 'emergency';
 
 export interface Incident {
   id: string;
@@ -144,10 +164,6 @@ export interface Incident {
   updated_at: string;
 }
 
-export type IncidentType =
-  | 'medical' | 'security' | 'facility' | 'crowd'
-  | 'accessibility' | 'lost_property' | 'other';
-
 export interface Transportation {
   id: string;
   stadium_id: string;
@@ -162,8 +178,6 @@ export interface Transportation {
   coordinates: { lat: number; lng: number } | null;
 }
 
-export type TransportType = 'metro' | 'bus' | 'taxi' | 'parking' | 'shuttle' | 'rideshare';
-
 export interface SustainabilityMetric {
   id: string;
   stadium_id: string;
@@ -174,10 +188,6 @@ export interface SustainabilityMetric {
   recorded_at: string;
   notes: string | null;
 }
-
-export type SustainabilityMetricType =
-  | 'water_usage' | 'energy_usage' | 'waste_recycled' | 'waste_total'
-  | 'carbon_footprint' | 'water_refills' | 'reusable_cups';
 
 export interface Match {
   id: string;
@@ -190,17 +200,16 @@ export interface Match {
   attendance: number | null;
 }
 
-export type MatchType =
-  | 'group_stage' | 'round_of_32' | 'round_of_16' | 'quarter_final'
-  | 'semi_final' | 'third_place' | 'final';
-
 export interface AIMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  language?: string;
+  language?: LanguageCode;
   confidence?: number;
   sources?: string[];
+  reasoningSummary?: string;
+  recommendedActions?: string[];
+  isFallback?: boolean;
 }
 
 export interface NavigationRoute {
@@ -211,4 +220,14 @@ export interface NavigationRoute {
   waypoints: { lat: number; lng: number }[];
   is_accessible: boolean;
   instructions: string[];
+}
+
+export interface StructuredAIResponse {
+  answer: string;
+  confidence: number;
+  reasoningSummary: string;
+  recommendedActions: string[];
+  sources: string[];
+  language: LanguageCode;
+  isFallback: boolean;
 }

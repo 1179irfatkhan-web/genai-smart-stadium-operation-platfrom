@@ -93,4 +93,3 @@ describe('ThemeContext', () => {
     expect(localStorage.getItem('highContrast')).toBe('true');
   });
 });
-

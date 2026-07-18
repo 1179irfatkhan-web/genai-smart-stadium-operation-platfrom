@@ -7,6 +7,7 @@ const mockData: StadiumDataContext = {
   gates: [
     { id: 'g1', stadium_id: 's1', name: 'Gate A', code: 'GA', type: 'general', is_accessible: true, current_queue: 5, max_capacity: 100, status: 'open', coordinates: null },
   ] as Gate[],
+  seatingSections: [],
   facilities: [
     { id: 'f1', stadium_id: 's1', name: 'Restroom 1', type: 'restroom', description: null, location: 'A', is_accessible: true, status: 'operational', hours_open: null, coordinates: null },
   ] as Facility[],
@@ -22,6 +23,8 @@ const mockData: StadiumDataContext = {
   alerts: [
     { id: 'a1', stadium_id: 's1', type: 'crowd', severity: 'warning', title: 'Test Alert', message: 'Test', location: null, action_required: null, is_resolved: false, resolved_at: null, created_at: '' },
   ] as Alert[],
+  volunteers: [],
+  sustainabilityMetrics: [],
 };
 
 describe('buildStadiumDataContext', () => {
