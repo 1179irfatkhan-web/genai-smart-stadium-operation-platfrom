@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Gate, Facility } from '../types';
 
-const { mockFetch, mockGetUser } = vi.hoisted(() => ({
+const { mockFetch, mockGetUser, mockInvoke } = vi.hoisted(() => ({
   mockFetch: vi.fn(),
   mockGetUser: vi.fn(),
+  mockInvoke: vi.fn(),
 }));
 
 vi.stubGlobal('fetch', mockFetch);
@@ -11,72 +13,17 @@ vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: { getUser: mockGetUser },
     functions: {
-      invoke: vi.fn(async (_name: string, { body }: { body: Record<string, unknown> }) => {
-        const { query, language, role, stadiumContext } = body as {
-          query: string;
-          language: string;
-          role: string;
-          stadiumContext: { stadiumName: string; gates: unknown[]; facilities: unknown[] };
-        };
-        if (!query || query.trim().length === 0) {
-          return { data: null, error: { message: 'Query is required' } };
-        }
-        if (/ignore\s+(previous|prior)\s+instructions/i.test(query)) {
-          return {
-            data: {
-              answer: 'I can only answer questions about stadium facilities, navigation, crowd, transport, and match information.',
-              confidence: 1,
-              reasoningSummary: 'Query was identified as a potential prompt injection attempt.',
-              recommendedActions: [],
-              sources: ['security'],
-              language,
-              isFallback: false,
-            },
-            error: null,
-          };
-        }
-        if (!stadiumContext?.stadiumName) {
-          return {
-            data: {
-              answer: "I don't have that information yet.",
-              confidence: 0,
-              reasoningSummary: 'No relevant stadium data available for this query.',
-              recommendedActions: [],
-              sources: [],
-              language,
-              isFallback: true,
-            },
-            error: null,
-          };
-        }
-        const roleAnswers: Record<string, string> = {
-          fan: 'Gate B is closest to your section.',
-          volunteer: 'Please assist with crowd flow at Gate B.',
-          venue_staff: 'Facility status: Gate B operational.',
-          organizer: 'Redirect crowd to Gate B to reduce congestion.',
-        };
-        return {
-          data: {
-            answer: roleAnswers[role] ?? roleAnswers.fan,
-            confidence: 0.9,
-            reasoningSummary: 'Based on current stadium data.',
-            recommendedActions: ['Proceed to Gate B'],
-            sources: ['gates', 'crowd_density'],
-            language,
-            isFallback: false,
-          },
-          error: null,
-        };
-      }),
+      invoke: mockInvoke,
     },
   },
 }));
 
 import { processAIRequest } from '../utils/aiLogic';
 import { clearRateLimits } from '../utils/rateLimiter';
+import { clearCache } from '../utils/aiCache';
 import type { StadiumDataContext } from '../utils/stadiumData';
 
-const baseContext = {
+const baseContext: StadiumDataContext = {
   stadiumName: 'MetLife Stadium',
   gates: [{
     id: 'B', stadium_id: 's1', name: 'Gate B', code: 'B',
@@ -95,13 +42,74 @@ const baseContext = {
   alerts: [],
   volunteers: [],
   sustainabilityMetrics: [],
-} as unknown as StadiumDataContext;
+};
 
 beforeEach(() => {
   mockFetch.mockReset();
   mockGetUser.mockReset();
+  mockInvoke.mockReset();
   localStorage.clear();
   clearRateLimits();
+  clearCache();
+
+  // Define the default mock implementation for invoke
+  mockInvoke.mockImplementation(async (_name: string, { body }: { body: Record<string, unknown> }) => {
+    const { query, language, role, stadiumContext } = body as {
+      query: string;
+      language: string;
+      role: string;
+      stadiumContext: { stadiumName: string; gates: Gate[]; facilities: Facility[] };
+    };
+    if (!query || query.trim().length === 0) {
+      return { data: null, error: { message: 'Query is required' } };
+    }
+    if (/ignore\s+(previous|prior)\s+instructions/i.test(query)) {
+      return {
+        data: {
+          answer: 'I can only answer questions about stadium facilities, navigation, crowd, transport, and match information.',
+          confidence: 1,
+          reasoningSummary: 'Query was identified as a potential prompt injection attempt.',
+          recommendedActions: [],
+          sources: ['security'],
+          language,
+          isFallback: false,
+        },
+        error: null,
+      };
+    }
+    if (!stadiumContext?.stadiumName) {
+      return {
+        data: {
+          answer: "I don't have that information yet.",
+          confidence: 0,
+          reasoningSummary: 'No relevant stadium data available for this query.',
+          recommendedActions: [],
+          sources: [],
+          language,
+          isFallback: true,
+        },
+        error: null,
+      };
+    }
+    const roleAnswers: Record<string, string> = {
+      fan: 'Gate B is closest to your section.',
+      volunteer: 'Please assist with crowd flow at Gate B.',
+      venue_staff: 'Facility status: Gate B operational.',
+      organizer: 'Redirect crowd to Gate B to reduce congestion.',
+    };
+    return {
+      data: {
+        answer: roleAnswers[role] ?? roleAnswers.fan,
+        confidence: 0.9,
+        reasoningSummary: 'Based on current stadium data.',
+        recommendedActions: ['Proceed to Gate B'],
+        sources: ['gates', 'crowd_density'],
+        language,
+        isFallback: false,
+      },
+      error: null,
+    };
+  });
 });
 
 describe('Edge Function integration via processAIRequest', () => {
@@ -184,4 +192,70 @@ describe('Edge Function integration via processAIRequest', () => {
     expect(serialized).not.toMatch(/GEMINI_API_KEY/i);
     expect(serialized).not.toMatch(/AIza[a-zA-Z0-9_-]{30,}/);
   });
+
+  it('handles server-side 401 Unauthorized status gracefully', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: { message: 'Invalid token' } });
+    mockInvoke.mockImplementationOnce(async () => ({
+      data: null,
+      error: { message: 'Unauthorized' } as unknown as Error,
+    }));
+    
+    const result = await processAIRequest({
+      query: 'Which gate is closest to my section?',
+      language: 'en',
+      stadiumData: baseContext,
+      userId: 'u1',
+      userRole: 'fan',
+    });
+    
+    expect(result.isFallback).toBe(true);
+    expect(result.answer).toBe("I don't have that information yet.");
+    expect(mockInvoke).toHaveBeenCalled();
+  });
+
+  it('handles server-side rate limit triggers successfully', async () => {
+    mockInvoke.mockImplementationOnce(async () => ({
+      data: {
+        answer: 'Please wait 3 seconds before sending another message.',
+        confidence: 1,
+        reasoningSummary: 'Rate limit active to prevent abuse.',
+        recommendedActions: [],
+        sources: ['rate-limiter'],
+        language: 'en',
+        isFallback: false,
+      },
+      error: null,
+    }));
+
+    const result = await processAIRequest({
+      query: 'Which gate is closest to my section?',
+      language: 'en',
+      stadiumData: baseContext,
+      userId: 'u1',
+      userRole: 'fan',
+    });
+
+    expect(result.sources).toContain('rate-limiter');
+    expect(result.answer).toContain('Please wait');
+    expect(mockInvoke).toHaveBeenCalled();
+  });
+
+  it('handles server-side 405 Method Not Allowed errors gracefully', async () => {
+    mockInvoke.mockImplementationOnce(async () => ({
+      data: null,
+      error: { message: 'Method Not Allowed' } as unknown as Error,
+    }));
+
+    const result = await processAIRequest({
+      query: 'Which gate is closest to my section?',
+      language: 'en',
+      stadiumData: baseContext,
+      userId: 'u1',
+      userRole: 'fan',
+    });
+
+    expect(result.isFallback).toBe(true);
+    expect(mockInvoke).toHaveBeenCalled();
+  });
 });
+

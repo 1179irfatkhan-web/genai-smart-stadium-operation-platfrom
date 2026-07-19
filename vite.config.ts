@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      'npm:@supabase/supabase-js@2.45.4': '@supabase/supabase-js',
     },
   },
   build: {

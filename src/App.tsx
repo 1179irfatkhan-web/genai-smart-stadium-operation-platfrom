@@ -79,7 +79,13 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route path="alerts" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="facilities" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="volunteers" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="incidents" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="matches" element={<Navigate to="/dashboard" replace />} />
                 </Route>
+
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

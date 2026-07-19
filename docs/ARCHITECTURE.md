@@ -1,125 +1,133 @@
-# StadiumIQ Architecture
+# System Architecture
 
-## Overview
+StadiumIQ is a server-split decision-support platform designed to handle smart stadium telemetry during the FIFA World Cup 2026. The solution leverages React on the frontend and Supabase (PostgreSQL, Auth, Edge Functions) with Google Gemini AI on the backend.
 
-StadiumIQ is a Generative AI decision-support platform for FIFA World Cup 2026 stadium operations. It serves fans, volunteers, venue staff, and organizers with real-time navigation, crowd intelligence, transport coordination, sustainability tracking, and an AI assistant powered by Google Gemini 1.5 Flash.
+---
 
-## System Architecture
+## 🗺️ System Topology
 
 ```mermaid
 flowchart TB
-    subgraph Client["Frontend (React + Vite + TypeScript)"]
-        UI[Dashboard / AI Assistant UI]
-        Val[Input Validation & Sanitization]
-        Inj[Prompt Injection Detection]
-        RL[Client Rate Limiter]
-        Cache[LRU AI Response Cache]
-        Ground[Grounding Pre-check]
+    subgraph Client["Client (React + TypeScript)"]
+        UI["UI (Dashboard / Maps / AI Assistant)"]
+        Val["Client Input Validation & Sanitization"]
+        Inj["Client Prompt Injection Detection"]
+        RL["Client Rate Limiter (3s memory)"]
+        Cache["Client LRU AI Cache (50 entries)"]
+        Ground["Client Grounding Check"]
     end
 
     subgraph Edge["Supabase Edge Function (Deno Runtime)"]
-        Auth[Auth Verification]
-        SVal[Server-side Validation]
-        SInj[Server-side Injection Detection]
-        Context[Stadium Context Builder]
-        Gemini[Google Gemini 1.5 Flash API]
-        Retry[Retry + Fallback Logic]
+        Auth["Bearer Header & JWT Verification"]
+        Service["Service Client Initialization"]
+        Role["Server-side Role Query (Zero-trust)"]
+        SVal["Server-side Sanitization"]
+        SInj["Server-side Injection Filter"]
+        Context["Context Builder (Grounded Data)"]
+        Rate["Atomic Rate Limiter (FOR UPDATE Locking)"]
+        Gemini["Google Gemini 1.5 Flash API"]
     end
 
-    subgraph Data["Supabase (PostgreSQL + Auth)"]
-        DB[(Postgres + RLS)]
-        AuthTbl[auth.users]
+    subgraph DB["Supabase Database (PostgreSQL)"]
+        DBR["auth.users (Registry)"]
+        RLT["rate_limits (Durable Records)"]
+        GAT["gates / seating / transport / alerts (Context tables)"]
+    end
+
+    subgraph Google["External GenAI Endpoint"]
+        GEM["gemini-1.5-flash:generateContent"]
     end
 
     User((User)) --> UI
     UI --> Val --> Inj --> RL --> Cache --> Ground
-    Ground -->|grounded query| Invoke[supabase.functions.invoke]
-    Invoke --> Auth --> SVal --> SInj --> Context --> Gemini --> Retry
-    Retry -->|StructuredAIResponse JSON| UI
-    UI -->|fallback| User
-
-    Auth --> AuthTbl
-    Gemini -->|GEMINI_API_KEY| GeminiAPI[(Google Generative AI)]
+    Ground -->|grounded query + token| Edge
+    Edge --> Auth --> Service --> Role
+    Role --> DBR
+    Role --> Rate
+    Rate --> RLT
+    Rate --> Context
+    Context --> GAT
+    Context --> Gemini
+    Gemini -->|GEMINI_API_KEY| GEM
+    GEM -->|JSON Response| Edge
+    Edge -->|StructuredAIResponse| UI
+    UI --> User
 ```
 
-## AI Assistant Request Flow
+---
+
+## 🔄 Client-to-Edge Request Sequence
+
+The sequence diagram below shows the end-to-end request path of an assistant query. It highlights zero-trust authorization (bypassing client-supplied roles) and database row locking during rate checks.
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant C as Client (aiLogic.ts)
     participant E as Edge Function (stadium-ai)
-    participant G as Gemini API
+    participant DB as Supabase PostgreSQL
+    participant G as Google Gemini API
 
-    U->>C: Submit question
-    C->>C: Validate & sanitize input
-    C->>C: Detect prompt injection (12 patterns)
-    C->>C: Check client rate limit (3s cooldown)
-    C->>C: Check LRU cache
-    C->>C: Grounding pre-check (isQueryGrounded)
-    C->>E: supabase.functions.invoke('stadium-ai')
-    E->>E: Verify auth (auth.getUser)
-    E->>E: Validate input + server-side injection check
-    E->>E: Build stadium context from request body
-    E->>G: POST generateContent (gemini-1.5-flash)
-    G-->>E: Structured JSON response
-    E->>E: Validate response schema
-    E-->>C: StructuredAIResponse JSON
-    C->>C: Cache response (LRU)
-    C-->>U: Display answer + reasoning + actions
+    U->>C: Input question (query)
+    C->>C: Enforce size limit (<1000 chars) & HTML sanitize
+    C->>C: Detect prompt injection (12 regex patterns)
+    C->>C: Check client-side cooldown (3s memory)
+    C->>C: Search LRU cache (50 entries)
+    C->>C: Grounding check (isQueryGrounded)
+    C->>E: POST /functions/v1/stadium-ai (Bearer JWT)
+    
+    Note over E: Edge Function parses token
+    E->>E: Enforce HTTP method restriction (POST, OPTIONS only)
+    E->>E: Verify Bearer token signature (auth.getUser)
+    E->>E: Initialize service role client (SUPABASE_SERVICE_ROLE_KEY)
+    
+    Note over E: Zero-trust Role Lookup
+    E->>DB: SELECT role FROM profiles WHERE id = user_id
+    DB-->>E: real role (e.g. venue_staff)
+    
+    Note over E: Atomic Rate Limiting
+    E->>DB: RPC check_and_update_rate_limit(user_id, '3 seconds')
+    Note over DB: Lock row (FOR UPDATE) & check cooldown
+    DB-->>E: allowed=true, retry_after=0
+    
+    Note over E: Authoritative Context Fetching
+    E->>DB: Fetch tables (gates, seats, crowd, transport, etc.)
+    DB-->>E: complete telemetry records
+    
+    E->>E: Build prompt with system instructions
+    E->>G: POST /v1beta/models/gemini-1.5-flash:generateContent
+    G-->>E: Valid JSON payload
+    
+    E->>E: Validate structured JSON format
+    E-->>C: 200 OK (StructuredAIResponse)
+    C->>C: Store in LRU cache
+    C-->>U: Display response (answer, confidence, actions, sources)
 ```
 
-## Structured AI Response Schema
+---
 
-All AI responses conform to a single schema, validated on both server and client:
+## 🔑 Authentication & Authorization (Zero-Trust)
 
-```typescript
-interface StructuredAIResponse {
-  answer: string;              // User-facing answer
-  confidence: number;          // 0..1
-  reasoningSummary: string;    // Brief, grounded reasoning
-  recommendedActions: string[];// Actionable next steps
-  sources: string[];           // Data sources used (gates, crowd_density, etc.)
-  language: LanguageCode;       // Response language (en, es, fr, de, pt, ar, zh)
-  isFallback: boolean;          // True if no grounded answer available
-}
-```
+### Authenticated Token Extraction
+Client requests must include the user's Supabase session JWT in the `Authorization` header under the `Bearer <token>` scheme. The Edge Function verifies this token cryptographically on Supabase Auth. Any missing, malformed, or invalid tokens are rejected with `401 Unauthorized`.
 
-## Security Architecture
+### Server-Side Role Enforcement
+The application implements a zero-trust model for user roles. The client-supplied role parameter in the request body is **completely ignored** for authorization. The Edge Function uses the `SUPABASE_SERVICE_ROLE_KEY` to query the authenticated user's real role from the database `profiles` table. This role (e.g., `fan`, `volunteer`, `venue_staff`, `organizer`) is then used to construct the system prompt.
 
-| Layer | Control |
-|-------|---------|
-| Client | Input validation, HTML entity encoding, 12-pattern injection detection, 3s rate limit, LRU cache, grounding pre-check |
-| Edge Function | Auth verification (`auth.getUser`), input validation, server-side injection detection, structured response validation, retry with backoff, fallback on any error |
-| Secrets | `GEMINI_API_KEY` lives ONLY in Supabase secrets — never in frontend code, env files, or build output |
-| Database | Row Level Security on all tables, `auth.uid()` ownership checks, `TO authenticated` policies |
+---
 
-## Role-Aware Responses
+## 🚦 Server-Side Atomic Rate Limiting
 
-The edge function adjusts the system prompt based on user role:
+Rate limiting is verified at the database level using a PostgreSQL-stored function `check_and_update_rate_limit`. 
+1. **Row Locking**: When a request arrives, the function locks the user's rate record (`SELECT ... FOR UPDATE`), preventing concurrent requests from bypassing the check.
+2. **Atomic Comparison**: The difference between the current time and the locked `last_request_at` timestamp is evaluated. If it is less than the 3-second cooldown interval, the request is rejected.
+3. **Transaction Commit**: If allowed, the timestamp is updated to the current time, and the row lock is released upon transaction commit.
+4. **Fallback Strategy**: In environments where the RPC function is not present, the Edge Function falls back gracefully to a standard select-then-upsert query to maintain service continuity.
 
-- **Fan**: navigation, seats, gates, restrooms, medical, accessibility
-- **Volunteer**: assigned tasks, crowd support, incident handling
-- **Venue Staff**: facility status, operational alerts, incident response
-- **Organizer**: crowd redirection, volunteer deployment, congestion response, transport planning
+---
 
-## Multilingual Support
+## 🌐 CORS & HTTP Restriction
 
-Seven languages are supported: English, Spanish, French, German, Portuguese, Arabic, Chinese. The language code is passed to Gemini, which generates native-language responses (not translation tags). Fallback responses are also localized.
-
-## Code Splitting & Performance
-
-- React lazy loading with Suspense for all route-level components
-- Manual Vite chunks: vendor, supabase, motion, icons
-- LRU cache (50 entries) prevents redundant Gemini calls
-- Client-side grounding check avoids network calls for ungrounded queries
-- Client-side rate limiting prevents abuse before hitting the server
-
-## Testing Strategy
-
-- **Vitest + React Testing Library**: 118+ tests across 13 test files
-- **Unit tests**: validation, sanitization, cache, rate limiter, stadium data, AI logic
-- **Component tests**: loading states, theme context, protected routes, auth pages, landing page
-- **Edge function tests**: auth, injection, grounding, role-aware, multilingual, secret exposure prevention
-- **Accessibility tests**: skip link, landmarks, ARIA labels, heading hierarchy
-- CI runs typecheck, lint, tests, and build on every push
+- **Allowed Methods**: Restricted strictly to `POST` and `OPTIONS` (preflight). All other HTTP verbs are rejected with `450 Method Not Allowed` or `405 Method Not Allowed` headers.
+- **Trusted Origins**: The `Access-Control-Allow-Origin` header is mapped to the configured origins stored in the server-side `ALLOWED_ORIGINS` environment variables. 
+- **Developer Support**: Dynamic local development support is maintained by verifying that the origin headers match the regex `^https?://localhost(:\d+)?$`. If the origin is untrusted, a safe fallback origin is returned.

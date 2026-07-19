@@ -19,7 +19,8 @@
     "types": ["vitest/globals", "@testing-library/jest-dom"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "npm:@supabase/supabase-js@2.45.4": ["./node_modules/@supabase/supabase-js"]
     }
   },
   "include": ["src", "vitest.setup.ts"]
