@@ -84,7 +84,7 @@ The platform supports **English, Spanish, French, German, Portuguese, Arabic, an
 ## 🚦 Telemetry Limits & Future Integrations
 
 ### Current Telemetry (Simulated)
-The platform uses Supabase tables to simulate real-time stadium feeds:
+The platform uses Supabase tables containing simulated match-day stadium data for demonstration:
 - `crowd_density`: Simulates concourse congestion levels (`low`, `moderate`, `high`, `critical`).
 - `gates`: Simulates entrance queue lengths and ticket validation rates.
 - `facilities`: Simulates restroom and elevator status telemetry.

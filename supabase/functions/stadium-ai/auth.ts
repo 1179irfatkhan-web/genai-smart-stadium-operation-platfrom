@@ -1,6 +1,12 @@
 import { createClient, SupabaseClient, User } from "npm:@supabase/supabase-js@2.45.4";
 
-declare const Deno: any;
+interface DenoEnv {
+  get(key: string): string | undefined;
+}
+interface DenoNamespace {
+  env: DenoEnv;
+}
+declare const Deno: DenoNamespace;
 
 export interface AuthSession {
   user: User;

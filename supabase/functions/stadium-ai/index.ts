@@ -1,6 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-declare const Deno: any;
+interface DenoEnv {
+  get(key: string): string | undefined;
+}
+interface DenoNamespace {
+  env: DenoEnv;
+  serve(handler: (req: Request) => Response | Promise<Response>): void;
+}
+declare const Deno: DenoNamespace;
 
 import { verifyAuth } from "./auth.ts";
 import { getCorsHeaders } from "./cors.ts";

@@ -8,9 +8,9 @@ import { APP_NAME, APP_TAGLINE, PROBLEM_STATEMENT_MAPPING } from '../../constant
 
 const FEATURES = [
   { icon: Map, title: 'Smart Navigation', desc: 'Interactive stadium maps with accessible routing' },
-  { icon: Users, title: 'Crowd Intelligence', desc: 'Real-time crowd density monitoring across zones' },
+  { icon: Users, title: 'Crowd Intelligence', desc: 'Simulated real-time crowd density monitoring across zones' },
   { icon: MessageSquare, title: 'AI Assistant', desc: 'Gemini-powered multilingual stadium guide' },
-  { icon: Bus, title: 'Transport Planner', desc: 'Live transport options and availability' },
+  { icon: Bus, title: 'Transport Planner', desc: 'Simulated transport options and availability' },
   { icon: Leaf, title: 'Sustainability', desc: 'Environmental impact tracking dashboard' },
   { icon: Accessibility, title: 'Accessibility', desc: 'High contrast, large text, and accessible routes' },
 ];

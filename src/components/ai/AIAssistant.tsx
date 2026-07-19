@@ -128,7 +128,7 @@ export function AIAssistant() {
             AI Assistant
           </h1>
           <p className="text-sm text-secondary mt-1">
-            Powered by Google Gemini. Grounded in real-time stadium data.
+            Powered by Google Gemini. Grounded in simulated match-day stadium data.
           </p>
         </div>
         <div className="flex items-center gap-2">

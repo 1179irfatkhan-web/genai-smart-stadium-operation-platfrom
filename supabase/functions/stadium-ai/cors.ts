@@ -1,4 +1,10 @@
-declare const Deno: any;
+interface DenoEnv {
+  get(key: string): string | undefined;
+}
+interface DenoNamespace {
+  env: DenoEnv;
+}
+declare const Deno: DenoNamespace;
 
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";

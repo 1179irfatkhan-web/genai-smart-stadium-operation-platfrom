@@ -35,7 +35,7 @@ export function TransportHub() {
           <Bus className="w-6 h-6" aria-hidden="true" />
           Transport Hub
         </h1>
-        <p className="text-sm text-secondary mt-1">Transportation options and real-time availability.</p>
+        <p className="text-sm text-secondary mt-1">Transportation options and simulated real-time availability.</p>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

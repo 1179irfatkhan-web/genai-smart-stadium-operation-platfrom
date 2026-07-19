@@ -63,7 +63,7 @@ export const PROBLEM_STATEMENT_MAPPING: {
     feature: 'Crowd Dashboard',
     route: '/dashboard/crowd',
     users: 'Organizers, venue staff',
-    genai: 'Produces operational recommendations based on live conditions',
+    genai: 'Produces operational recommendations based on simulated match-day stadium conditions',
   },
   {
     challenge: 'Accessibility',

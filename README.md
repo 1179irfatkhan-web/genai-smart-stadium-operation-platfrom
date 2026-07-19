@@ -1,8 +1,13 @@
 # StadiumIQ
 
-**GenAI Smart Stadium Platform for FIFA World Cup 2026**
+**GenAI Smart Stadium Platform for FIFA World Cup 2026 (Working Prototype)**
 
-StadiumIQ is a Generative AI decision-support platform designed to enhance stadium operations and the overall tournament experience for fans, organizers, volunteers, and venue staff. It leverages Google Gemini 1.5 Flash to provide grounded, role-aware, and multilingual assistance across navigation, crowd management, accessibility, transportation, and sustainability.
+> [!NOTE]
+> **Prototype & Grounding Disclosure**: StadiumIQ is a working GenAI-enabled prototype. Google Gemini is invoked server-side through a Supabase Edge Function, and the stadium context is grounded entirely in structured project data. Current operational and crowd data are simulated for demonstration. The architecture is fully prepared for future authorized live-data integrations. No real-time external FIFA, stadium, municipal government, transit agency, or emergency-services live feeds are currently claimed or connected.
+>
+> “StadiumIQ currently demonstrates real-time decision-support workflows using simulated match-day stadium data. Production deployment can integrate authorized live venue, transport, incident, and crowd-monitoring feeds.”
+
+StadiumIQ is a Generative AI decision-support platform designed to enhance stadium operations and the overall tournament experience for fans, organizers, volunteers, and venue staff using simulated real-time data. It leverages Google Gemini 1.5 Flash to provide grounded, role-aware, and multilingual assistance across navigation, crowd management, accessibility, transportation, and sustainability.
 
 ---
 
@@ -18,11 +23,11 @@ An in-app **Challenge Alignment** matrix page is available at `/dashboard/alignm
 
 | Challenge Area | Existing StadiumIQ Feature | Target Users | GenAI Role & Contribution | Working Module Link |
 | :--- | :--- | :--- | :--- | :--- |
-| **Navigation** | Interactive Stadium Map | Fans, Volunteers | Generates grounded path directions based on live queue times and user profile constraints. | [/dashboard/map](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/maps/StadiumMap.tsx) |
+| **Navigation** | Interactive Stadium Map | Fans, Volunteers | Generates grounded path directions based on simulated queue times and user profile constraints. | [/dashboard/map](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/maps/StadiumMap.tsx) |
 | **Crowd Management** | Crowd Density Heatmap & Telemetry | Organizers, Venue Staff | Analyzes critical crowd density levels to formulate volunteer dispatch suggestions. | [/dashboard/crowd](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/crowd/CrowdIntelligence.tsx) |
 | **Accessibility** | Accessibility AI Assistant | Fans with accessibility needs | Adapts guidance to physical requirements, highlighting step-free paths and elevators. | [/dashboard/ai](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/ai/AIAssistant.tsx) |
 | **Transportation** | Transit Hub Dashboard | Fans, Organizers | Suggests optimal post-match travel times and routes to avoid peak egress crowd surges. | [/dashboard/transport](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/transport/TransportHub.tsx) |
-| **Sustainability** | Sustainability Metrics Tracker | Fans, Organizers | Recommends dynamic recycling and operational instructions based on live attendance. | [/dashboard/sustainability](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/sustainability/SustainabilityDashboard.tsx) |
+| **Sustainability** | Sustainability Metrics Tracker | Fans, Organizers | Recommends dynamic recycling and operational instructions based on simulated match-day attendance. | [/dashboard/sustainability](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/sustainability/SustainabilityDashboard.tsx) |
 | **Multilingual Assistance** | Multilingual Gemini AI | International Fans & Staff | Generates native response JSON in English, Spanish, French, German, Portuguese, Arabic, and Chinese. | [/dashboard/ai](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/ai/AIAssistant.tsx) |
 | **Operational Intelligence** | Unified Organizer Dashboard | Tournament Organizers | Synthesizes multi-source telemetry to recommend cross-functional mitigations. | [/dashboard](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/organizer/OrganizerDashboard.tsx) |
 | **Real-Time Decision Support**| AI Recommendations Feed | Organizers, Staff | Combines active match events, unresolved alerts, and density levels into prioritized actions. | [/dashboard/ai](file:///c:/Users/admin/Desktop/genai-smart-stadium-operation-platfrom/src/components/ai/AIAssistant.tsx) |
@@ -54,7 +59,7 @@ For authentication, service role lookup, atomic rate limiting, and CORS paramete
 To support immediate verification without localized IoT hardware deployments:
 - **Simulated Feeds**: Stadium telemetry (crowd density, gate queues, transport availability, facility statuses) are simulated dynamically inside database tables using Supabase.
 - **Mock Interfaces**: These mock tables mimic actual IoT telemetry, ticketing systems, and cameras.
-- **Production Integration Path**: In a live tournament environment, these database layers would be replaced with real-time hardware webhooks, ticketing registries, and local transport API feeds.
+- **Production Integration Path**: In a production tournament environment, these database layers can be replaced with authorized real-time hardware webhooks, ticketing registries, and local transport API feeds.
 
 ---
 

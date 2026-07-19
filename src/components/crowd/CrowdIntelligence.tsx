@@ -36,7 +36,7 @@ export function CrowdIntelligence() {
           <Users className="w-6 h-6" aria-hidden="true" />
           Crowd Intelligence
         </h1>
-        <p className="text-sm text-secondary mt-1">Real-time crowd density monitoring across stadium zones.</p>
+        <p className="text-sm text-secondary mt-1">Simulated real-time crowd density monitoring across stadium zones.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

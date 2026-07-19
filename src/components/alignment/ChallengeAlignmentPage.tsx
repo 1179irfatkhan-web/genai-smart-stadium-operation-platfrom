@@ -23,7 +23,7 @@ const ALIGNMENT_DATA: AlignmentItem[] = [
     requirement: "Improve indoor/outdoor navigation and route optimization during dynamic stadium events.",
     feature: "Interactive Stadium Map",
     user: "Fans, Volunteers",
-    genai: "Grounded navigation instructions that suggest gates based on live queue times and user profile constraints.",
+    genai: "Grounded navigation instructions that suggest gates based on simulated queue times and user profile constraints.",
     value: "Guides lost fans to the nearest accessible entry, cutting transit times by up to 15 minutes.",
     route: "/dashboard/map",
     moduleName: "Stadium Map"
@@ -67,7 +67,7 @@ const ALIGNMENT_DATA: AlignmentItem[] = [
     requirement: "Minimize waste, reduce carbon footprints, and monitor resource consumption.",
     feature: "Sustainability Metrics Tracking",
     user: "Fans, Organizers",
-    genai: "Formulates operational directives to optimize HVAC loads or waste diversion rates based on live attendance.",
+    genai: "Formulates operational directives to optimize HVAC loads or waste diversion rates based on simulated match-day attendance.",
     value: "Recommends waste sorting instructions dynamically, boosting diversion rates by 12%.",
     route: "/dashboard/sustainability",
     moduleName: "Sustainability Dashboard"
@@ -262,7 +262,7 @@ export function ChallengeAlignmentPage() {
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4">
                   {[
                     { step: 1, title: "Query Assist", desc: "Fan queries AI: 'Best accessible exit route from Section 102 to transit.'" },
-                    { step: 2, title: "Check Telemetry", desc: "AI checks live gate queues and discovers Gate B is heavily congested." },
+                    { step: 2, title: "Check Telemetry", desc: "AI checks simulated gate queues and discovers Gate B is heavily congested." },
                     { step: 3, title: "Step-free Egress", desc: "AI suggests step-free path to elevator A, exiting via low-density Gate C." },
                     { step: 4, title: "Transit Egress", desc: "AI checks rideshare/metro queue rates, routing fan to elevator B at North metro." },
                     { step: 5, title: "Safe Egress", desc: "Fan boards accessible train without getting stuck in crowd bottlenecks." }
@@ -281,7 +281,7 @@ export function ChallengeAlignmentPage() {
                 </div>
 
                 <div className="flex justify-between items-center pt-2 text-xs">
-                  <span className="text-tertiary">Real-time telemetry utilized: Gates, Crowd Density, Facilities, Transport.</span>
+                  <span className="text-tertiary">Telemetry context utilized: Gates, Crowd Density, Facilities, Transport.</span>
                   <Link to="/dashboard/ai" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
                     Try in AI Assistant <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -329,7 +329,7 @@ export function ChallengeAlignmentPage() {
                 </div>
 
                 <div className="flex justify-between items-center pt-2 text-xs">
-                  <span className="text-tertiary">Real-time telemetry utilized: Crowd Density, Volunteers, Alerts, Gates.</span>
+                  <span className="text-tertiary">Telemetry context utilized: Crowd Density, Volunteers, Alerts, Gates.</span>
                   <Link to="/dashboard/crowd" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
                     Open Crowd Dashboard <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -348,14 +348,13 @@ export function ChallengeAlignmentPage() {
             Simulated Real-Time Data Disclosure
           </h2>
           <p className="text-xs text-secondary leading-relaxed">
-            StadiumIQ utilizes Supabase database tables to simulate real-time stadium conditions including crowd density,
-            gate queue capacity, facility conditions, public transport frequencies, active alerts, and volunteer shifts.
+            StadiumIQ currently demonstrates real-time decision-support workflows using simulated match-day stadium data. Production deployment can integrate authorized live venue, transport, incident, and crowd-monitoring feeds.
             These mock tables mimic dynamic IoT telemetry and ticketing system logs to ground the GenAI model.
           </p>
           <div className="p-3 bg-amber-500/10 rounded border border-amber-500/20 text-xxs text-secondary flex items-start gap-2">
             <MapPin className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <span>
-              <strong>Note:</strong> Live integrations with official FIFA ticketing systems, municipal transit telemetry APIs,
+              <strong>Note:</strong> Production integrations with official FIFA ticketing systems, municipal transit telemetry APIs,
               and hardware-based stadium cameras are simulated inside database tables to support complete demo readiness without physical IoT deployments.
             </span>
           </div>
